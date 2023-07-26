@@ -59,8 +59,8 @@ exports.createSession = async (req, res, next) => {
               quantity: 1,
             },
           ],
-          success_url: "https://app.connectvid.io/payment_success",
-          cancel_url: "https://app.connectvid.io/payment_fail",
+          success_url: "https://app.rrweb.io/payment_success",
+          cancel_url: "https://app.rrweb.io/payment_fail",
           customer: stripeCustomerId,
         },
         {

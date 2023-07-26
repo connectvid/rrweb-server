@@ -12,7 +12,7 @@ const otpSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true
+      trim: true,
     },
     otp: {
       type: String,

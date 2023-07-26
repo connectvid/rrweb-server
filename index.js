@@ -41,6 +41,7 @@ app.use("/api/v1/email", require("./routes/emailRoute"));
 app.use("/api/v1/otp", require("./routes/otpRoute"));
 app.use("/api/v1/stripe", require("./routes/stripeRoute"));
 app.use("/api/v1/feedback", require("./routes/feedbackRoute"));
+app.use("/api/v1/record", require("./routes/recordRoute"));
 
 // ROOT GET API
 app.get("/", async (req, res) => {
