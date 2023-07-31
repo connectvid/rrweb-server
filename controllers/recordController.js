@@ -1,3 +1,6 @@
+//external imports
+const ObjectId = require("mongodb").ObjectId;
+
 // internal imports
 const Record = require("../models/Record");
 const User = require("../models/User");
@@ -7,28 +10,48 @@ const User = require("../models/User");
 const recordController = {};
 
 // create new record
-recordController.createRecord = async (req, res, next) => {
+recordController.createOrUpdateRecord = async (req, res, next) => {
   try {
-    const { userId, websiteUrl, date, data } = req.body;
+    const { userId, websiteUrl, date, data, update } = req.body;
     console.log(userId, websiteUrl, date, data?.length);
 
-    const parts = date.split("/");
-    if (parts.length !== 3) {
-      throw new Error("Invalid date format. Expected dd/mm/yyyy");
+    if (!update) {
+      const parts = date.split("/");
+      if (parts.length !== 3) {
+        throw new Error("Invalid date format. Expected dd/mm/yyyy");
+      }
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1;
+      const year = parseInt(parts[2]);
+      const newRecord = await Record.create({
+        userId,
+        websiteUrl,
+        date: new Date(year, month, day),
+        data,
+      });
+      res.status(201).send({
+        isSuccess: true,
+        data: newRecord,
+      });
+    } else {
+      const updateDoc = {
+        $push: {
+          data: { $each: data },
+        },
+      };
+
+      console.log({ updateDoc, id: req.body.id });
+
+      const savedData = await Record.updateOne(
+        { _id: new ObjectId(req.body.id) },
+        updateDoc
+      );
+
+      res.status(201).send({
+        isSuccess: true,
+        data: savedData,
+      });
     }
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-    const newRecord = await Record.create({
-      userId,
-      websiteUrl,
-      date: new Date(year, month, day),
-      data,
-    });
-    res.status(201).send({
-      isSuccess: true,
-      data: newRecord,
-    });
   } catch (error) {
     console.log(error);
     res
@@ -54,6 +77,11 @@ recordController.getAllRecords = async (req, res, next) => {
     const records = await Record.find({ userId: userId })
       .select("-data")
       .exec();
+    // const records = await Record.find({ userId: userId })
+    //   .select("-data")
+    //   .exec();
+
+    console.log({ records, userId });
     res.status(200).send({
       isSuccess: true,
       data: records,

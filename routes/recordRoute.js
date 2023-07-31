@@ -1,6 +1,6 @@
 const isAuthenticated = require("../middleware/isAuthenticated");
 const {
-  createRecord,
+  createOrUpdateRecord,
   getAllRecords,
   getRecordById,
   deleteRecordById,
@@ -15,7 +15,7 @@ router
    * @route base_url/api/v1/record/create-record
    * @method POST
    */
-  .post("/create-record", createRecord)
+  .post("/create-record", createOrUpdateRecord)
   /**
    * @route base_url/record/api/v1/gel-all-records
    * @method GET
