@@ -31,6 +31,8 @@ recordController.createOrUpdateRecord = async (req, res, next) => {
         user.endDate > new Date() &&
         user.credit > 1
       ) {
+        user.credit = user.credit - 1;
+        await user.save();
         const newRecord = await Record.create({
           userId,
           websiteUrl,
