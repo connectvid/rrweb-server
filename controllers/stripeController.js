@@ -168,19 +168,19 @@ exports.webhook = async (request, response, next) => {
         });
         if (email && paid && amount_captured && status === "succeeded") {
           //update your database
-          if (amount_captured === 5000) {
+          if (amount_captured === 2900) {
             //add basic subscription
             try {
               const query = { email: email };
               const options = { upsert: true };
               const endDate = new Date();
-              endDate.setMonth(endDate.getMonth() + 1);
+              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
 
               const updateDoc = {
                 $set: {
                   selectedPlan: "basic",
                   endDate: endDate,
-                  credit: 100,
+                  credit: 29999,
                 },
               };
               const userUpdate = await User.updateOne(
@@ -191,19 +191,19 @@ exports.webhook = async (request, response, next) => {
             } catch (e) {
               console.log(e);
             }
-          } else if (amount_captured === 20000) {
+          } else if (amount_captured === 5900) {
             //add standard subscription
             try {
               const query = { email: email };
               const options = { upsert: true };
               const endDate = new Date();
-              endDate.setMonth(endDate.getMonth() + 1);
+              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
 
               const updateDoc = {
                 $set: {
                   selectedPlan: "standard",
                   endDate: endDate,
-                  credit: 500,
+                  credit: 59000,
                 },
               };
               const userUpdate = await User.updateOne(
@@ -214,19 +214,19 @@ exports.webhook = async (request, response, next) => {
             } catch (e) {
               console.log(e);
             }
-          } else if (amount_captured === 60000) {
+          } else if (amount_captured === 9900) {
             //add pro subscription
             try {
               const query = { email: email };
               const options = { upsert: true };
               const endDate = new Date();
-              endDate.setMonth(endDate.getMonth() + 1);
+              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
 
               const updateDoc = {
                 $set: {
                   selectedPlan: "premium",
                   endDate: endDate,
-                  credit: 2000,
+                  credit: 99999,
                 },
               };
               const userUpdate = await User.updateOne(

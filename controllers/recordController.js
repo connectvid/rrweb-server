@@ -13,8 +13,6 @@ const recordController = {};
 recordController.createOrUpdateRecord = async (req, res, next) => {
   try {
     const { userId, websiteUrl, date, data, update } = req.body;
-    console.log(userId, websiteUrl, date, data?.length);
-
     if (!update) {
       const parts = date.split("/");
       if (parts.length !== 3) {
@@ -23,16 +21,33 @@ recordController.createOrUpdateRecord = async (req, res, next) => {
       const day = parseInt(parts[0]);
       const month = parseInt(parts[1]) - 1;
       const year = parseInt(parts[2]);
-      const newRecord = await Record.create({
-        userId,
-        websiteUrl,
-        date: new Date(year, month, day),
-        data,
-      });
-      res.status(201).send({
-        isSuccess: true,
-        data: newRecord,
-      });
+
+      const user = await User.findById(userId);
+      if (
+        user &&
+        (user.selectedPlan === "basic" ||
+          user.selectedPlan === "standard" ||
+          user.selectedPlan === "premium") &&
+        user.endDate > new Date() &&
+        user.credit > 1
+      ) {
+        const newRecord = await Record.create({
+          userId,
+          websiteUrl,
+          date: new Date(year, month, day),
+          data,
+        });
+        res.status(201).send({
+          isSuccess: true,
+          data: newRecord,
+        });
+      } else {
+        res.status(400).send({
+          isSuccess: false,
+          error:
+            "Cannot create record. User does not meet the required conditions.",
+        });
+      }
     } else {
       const updateDoc = {
         $push: {

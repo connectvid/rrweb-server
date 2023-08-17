@@ -112,7 +112,7 @@ exports.createUserOrGetUser = async (req, res) => {
       role: "user",
       status: "active",
       stripeCustomerID: customer.id,
-      selectedPlan: "none",
+      selectedPlan: "trial",
       endDate,
     };
 
