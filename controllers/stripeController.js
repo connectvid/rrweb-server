@@ -136,8 +136,7 @@ exports.webhook = async (request, response, next) => {
   try {
     console.log("object");
     const sig = request.headers["stripe-signature"];
-    // const endpointSecret = "whsec_O3BsUNzg9LVSeSBZL2KtPqA3Ub4yLNJE"; //live secret for render server
-    const endpointSecret = "whsec_TF4RIwDdMclsSCl5f2Yuqw8CjO4U3dc5"; //local secret for local server
+    const endpointSecret = "whsec_1D5pHqttXnLHZDn2Ni8NPFfOG0fWxfhV"; //live secret for render server
 
     let event;
 
