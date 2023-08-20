@@ -12,10 +12,9 @@ exports.getPrices = async (req, res, next) => {
 //createSession
 exports.createSession = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const user = await User.findOne({ email: req.body.email }).exec();
     let stripeCustomerId = user?.stripeCustomerID;
-    console.log({ stripeCustomerId });
-    if (!stripeCustomerId || stripeCustomerId) {
+    if (!stripeCustomerId) {
       try {
         const customer = await stripe.customers.create(
           {
@@ -25,17 +24,21 @@ exports.createSession = async (req, res, next) => {
             apiKey: process.env.STRIPE_SECRET_KEY,
           }
         );
+
         stripeCustomerId = customer.id;
         const updateDoc = {
-          $set: {
-            stripeCustomerId: customer.id,
-          },
+          // $set: {
+          //   stripeCustomerID: customer.id,
+          // },
+          stripeCustomerID: customer.id,
         };
-        const savedUser = await User.updateOne(
+
+        const updateResult = await User.findOneAndUpdate(
           { email: req.body.email },
           updateDoc,
           {
             upsert: true,
+            new: true,
           }
         );
       } catch (err) {
@@ -70,7 +73,7 @@ exports.createSession = async (req, res, next) => {
     } catch (er) {
       console.log(er);
     }
-    console.log({ session });
+    // console.log({ session });
     return res.status(200).send({
       isSuccess: true,
       session: session,
@@ -131,133 +134,6 @@ exports.checkSubscription = async (req, res, next) => {
   }
 };
 
-//
-exports.webhook = async (request, response, next) => {
-  try {
-    console.log("object");
-    const sig = request.headers["stripe-signature"];
-    const endpointSecret = "whsec_1D5pHqttXnLHZDn2Ni8NPFfOG0fWxfhV"; //live secret for render server
-
-    let event;
-
-    try {
-      console.log({
-        stripeWebhooksConstructEvent: stripe.webhooks.constructEvent,
-      });
-      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-      console.log("try executed");
-    } catch (err) {
-      console.log("try error");
-      response.status(400).send(`Webhook Error: ${err.message}`);
-      return;
-    }
-
-    switch (event.type) {
-      case "charge.succeeded":
-        const chargeSucceeded = event.data.object;
-        const status = chargeSucceeded?.status;
-        const paid = chargeSucceeded?.paid;
-        const amount_captured = chargeSucceeded?.amount_captured;
-        const email = chargeSucceeded?.billing_details?.email;
-        console.log({
-          email,
-          status,
-          paid,
-          amount_captured,
-        });
-        if (email && paid && amount_captured && status === "succeeded") {
-          //update your database
-          if (amount_captured === 2900) {
-            //add basic subscription
-            try {
-              const query = { email: email };
-              const options = { upsert: true };
-              const endDate = new Date();
-              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
-
-              const updateDoc = {
-                $set: {
-                  selectedPlan: "basic",
-                  endDate: endDate,
-                  credit: 29999,
-                },
-              };
-              const userUpdate = await User.updateOne(
-                query,
-                updateDoc,
-                options
-              );
-            } catch (e) {
-              console.log(e);
-            }
-          } else if (amount_captured === 5900) {
-            //add standard subscription
-            try {
-              const query = { email: email };
-              const options = { upsert: true };
-              const endDate = new Date();
-              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
-
-              const updateDoc = {
-                $set: {
-                  selectedPlan: "standard",
-                  endDate: endDate,
-                  credit: 59000,
-                },
-              };
-              const userUpdate = await User.updateOne(
-                query,
-                updateDoc,
-                options
-              );
-            } catch (e) {
-              console.log(e);
-            }
-          } else if (amount_captured === 9900) {
-            //add pro subscription
-            try {
-              const query = { email: email };
-              const options = { upsert: true };
-              const endDate = new Date();
-              endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
-
-              const updateDoc = {
-                $set: {
-                  selectedPlan: "premium",
-                  endDate: endDate,
-                  credit: 99999,
-                },
-              };
-              const userUpdate = await User.updateOne(
-                query,
-                updateDoc,
-                options
-              );
-            } catch (e) {
-              console.log(e);
-            }
-          } else {
-            console.log("request to another server");
-          }
-        } else {
-          response.status(422).send({
-            isSuccess: false,
-            message:
-              "billing details or some important payment infos are missing!",
-          });
-        }
-        break;
-      default:
-        console.log(`Unhandled event type ${event.type}`);
-    }
-
-    // Return a 200 response to acknowledge receipt of the event
-    response.send();
-  } catch (e) {
-    response.status(500).send({ message: e.message || "something went wrong" });
-  }
-};
-
 //cancelSubscription
 exports.cancelSubscription = async (req, res, next) => {
   try {
@@ -274,3 +150,238 @@ exports.cancelSubscription = async (req, res, next) => {
     res.status.send({ isSuccess: false });
   }
 };
+
+exports.webhook = async (request, response, next) => {
+  try {
+    const sig = request.headers["stripe-signature"];
+    const endpointSecret = "whsec_1D5pHqttXnLHZDn2Ni8NPFfOG0fWxfhV"; // Your endpoint secret
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+    } catch (err) {
+      response.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+    console.log(event.type, 1234);
+
+    switch (event.type) {
+      // case "customer.subscription.created": // customer.subscription.updated event triggers when user creates a new subscription
+      case "customer.subscription.updated":
+        const subscription = event.data.object;
+
+        const endDate = new Date(subscription.current_period_end * 1000);
+        const customerId = subscription.customer;
+        let selectedPlan = "",
+          credit = 0;
+
+        if (subscription.plan.product === "prod_OSylA7NCiGoeJV") {
+          selectedPlan = "basic";
+          credit = 29000;
+        } else if (subscription.plan.product === "prod_OSylNMKhcE9zZQ") {
+          selectedPlan = "standard";
+          credit = 59000;
+        } else if (subscription.plan.product === "prod_OSylv4rozveFqr") {
+          selectedPlan = "premium";
+          credit = 99000;
+        } else if (subscription.plan.product === "prod_OCrzCUPt4SGKZk") {
+          selectedPlan = "test";
+          credit = 1234;
+        }
+
+        // Retrieve the customer's email using the Stripe API
+        const customer = await stripe.customers.retrieve(customerId);
+        const email = customer.email;
+        // console.log(email, " this is the customer email");
+        // console.log(selectedPlan, " this is the customer selectedPlan");
+        // console.log(endDate, " this is the customer endDate");
+        // console.log(credit, " this is the customer credit");
+        if (selectedPlan && credit) {
+          const updateDoc = {
+            $set: {
+              selectedPlan: selectedPlan,
+              endDate: endDate,
+              credit: credit,
+            },
+          };
+
+          try {
+            const query = { email: email };
+            const options = { upsert: true };
+            console.log(query, updateDoc, options);
+
+            const userUpdate = await User.updateOne(query, updateDoc, options);
+            console.log(userUpdate, "userUpdate log");
+          } catch (e) {
+            console.log(e);
+          }
+        }
+
+        break;
+      case "customer.subscription.deleted":
+        const canceledSubscription = event.data.object;
+        const canceledUserId = canceledSubscription.customer;
+        const customerObj = await stripe.customers.retrieve(canceledUserId);
+        const canceledEmail = customerObj.email;
+
+        // Update user data to reflect cancellation (you can set relevant fields to null or perform any other necessary action)
+        const cancelUpdateDoc = {
+          $set: {
+            selectedPlan: "none",
+            // endDate: null,
+            credit: 0,
+          },
+        };
+
+        try {
+          const cancelQuery = { email: canceledEmail };
+          const cancelOptions = { upsert: true };
+
+          const canceledUserUpdate = await User.updateOne(
+            cancelQuery,
+            cancelUpdateDoc,
+            cancelOptions
+          );
+        } catch (e) {
+          console.log(e);
+        }
+
+        break;
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    response.send();
+  } catch (e) {
+    response.status(500).send({ message: e.message || "Something went wrong" });
+  }
+};
+
+// old webhook
+// exports.webhook = async (request, response, next) => {
+//   try {
+//     console.log("object");
+//     const sig = request.headers["stripe-signature"];
+//     const endpointSecret = "whsec_1D5pHqttXnLHZDn2Ni8NPFfOG0fWxfhV"; //live secret for render server
+
+//     let event;
+
+//     try {
+//       console.log({
+//         stripeWebhooksConstructEvent: stripe.webhooks.constructEvent,
+//       });
+//       event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+//       console.log("try executed");
+//     } catch (err) {
+//       console.log("try error");
+//       response.status(400).send(`Webhook Error: ${err.message}`);
+//       return;
+//     }
+
+//     switch (event.type) {
+//       case "charge.succeeded":
+//         const chargeSucceeded = event.data.object;
+//         const status = chargeSucceeded?.status;
+//         const paid = chargeSucceeded?.paid;
+//         const amount_captured = chargeSucceeded?.amount_captured;
+//         const email = chargeSucceeded?.billing_details?.email;
+//         console.log({
+//           email,
+//           status,
+//           paid,
+//           amount_captured,
+//         });
+//         if (email && paid && amount_captured && status === "succeeded") {
+//           //update your database
+//           if (amount_captured === 2900) {
+//             //add basic subscription
+//             try {
+//               const query = { email: email };
+//               const options = { upsert: true };
+//               const endDate = new Date();
+//               endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
+
+//               const updateDoc = {
+//                 $set: {
+//                   selectedPlan: "basic",
+//                   endDate: endDate,
+//                   credit: 29999,
+//                 },
+//               };
+//               const userUpdate = await User.updateOne(
+//                 query,
+//                 updateDoc,
+//                 options
+//               );
+//             } catch (e) {
+//               console.log(e);
+//             }
+//           } else if (amount_captured === 5900) {
+//             //add standard subscription
+//             try {
+//               const query = { email: email };
+//               const options = { upsert: true };
+//               const endDate = new Date();
+//               endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
+
+//               const updateDoc = {
+//                 $set: {
+//                   selectedPlan: "standard",
+//                   endDate: endDate,
+//                   credit: 59000,
+//                 },
+//               };
+//               const userUpdate = await User.updateOne(
+//                 query,
+//                 updateDoc,
+//                 options
+//               );
+//             } catch (e) {
+//               console.log(e);
+//             }
+//           } else if (amount_captured === 9900) {
+//             //add pro subscription
+//             try {
+//               const query = { email: email };
+//               const options = { upsert: true };
+//               const endDate = new Date();
+//               endDate.setFullYear(endDate.getFullYear() + 1); // Increase endDate by 1 year
+
+//               const updateDoc = {
+//                 $set: {
+//                   selectedPlan: "premium",
+//                   endDate: endDate,
+//                   credit: 99999,
+//                 },
+//               };
+//               const userUpdate = await User.updateOne(
+//                 query,
+//                 updateDoc,
+//                 options
+//               );
+//             } catch (e) {
+//               console.log(e);
+//             }
+//           } else {
+//             console.log("request to another server");
+//           }
+//         } else {
+//           response.status(422).send({
+//             isSuccess: false,
+//             message:
+//               "billing details or some important payment infos are missing!",
+//           });
+//         }
+//         break;
+//       default:
+//         console.log(`Unhandled event type ${event.type}`);
+//     }
+
+//     // Return a 200 response to acknowledge receipt of the event
+//     response.send();
+//   } catch (e) {
+//     response.status(500).send({ message: e.message || "something went wrong" });
+//   }
+// };
