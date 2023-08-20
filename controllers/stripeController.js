@@ -154,7 +154,7 @@ exports.cancelSubscription = async (req, res, next) => {
 exports.webhook = async (request, response, next) => {
   try {
     const sig = request.headers["stripe-signature"];
-    const endpointSecret = "whsec_1D5pHqttXnLHZDn2Ni8NPFfOG0fWxfhV"; // Your endpoint secret
+    const endpointSecret = "whsec_IumNflupfBPr6XfeIeN9HrJqBs3Dp1Wu"; // Your endpoint secret
 
     let event;
 
