@@ -100,22 +100,22 @@ recordController.getAllRecords = async (req, res, next) => {
       isDemo = true;
     }
 
-    // console.log({
-    //   records,
-    //   userId,
-    //   len: records.length,
-    //   isT: 0 === records.length,
-    //   isDemo,
-    // });
+    console.log({
+      // records,
+      userId,
+      len: records.length,
+      isT: 0 === records.length,
+      isDemo,
+    });
     res.status(200).send({
       isSuccess: true,
       data: records,
+      isDemo: isDemo,
     });
   } catch (error) {
     res.status(500).send({
       message: "Error fetching the record",
       isSuccess: false,
-      isDemo: isDemo,
     });
   }
 };
