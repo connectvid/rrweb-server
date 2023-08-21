@@ -81,6 +81,7 @@ recordController.createOrUpdateRecord = async (req, res, next) => {
 recordController.getAllRecords = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    let isDemo = false;
 
     // First, check if the user with the provided userId exists
     const user = await User.findById(userId).exec();
@@ -91,22 +92,31 @@ recordController.getAllRecords = async (req, res, next) => {
     }
 
     // If the user exists, fetch all records associated with this user
-    const records = await Record.find({ userId: userId })
-      .select("-data")
-      .exec();
-    // const records = await Record.find({ userId: userId })
-    //   .select("-data")
-    //   .exec();
+    let records = await Record.find({ userId: userId }).select("-data").exec();
+    if (0 === records.length) {
+      records = await Record.find({ userId: "64c645369cb4816e6ffaeef2" })
+        .select("-data")
+        .exec();
+      isDemo = true;
+    }
 
-    console.log({ records, userId });
+    // console.log({
+    //   records,
+    //   userId,
+    //   len: records.length,
+    //   isT: 0 === records.length,
+    //   isDemo,
+    // });
     res.status(200).send({
       isSuccess: true,
       data: records,
     });
   } catch (error) {
-    res
-      .status(500)
-      .send({ message: "Error fetching the record", isSuccess: false });
+    res.status(500).send({
+      message: "Error fetching the record",
+      isSuccess: false,
+      isDemo: isDemo,
+    });
   }
 };
 
