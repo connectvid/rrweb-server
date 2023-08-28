@@ -7,7 +7,15 @@ const { stripe } = require("../utils/stripe");
 exports.createUser = async (req, res) => {
   try {
     const email = req.body.email;
+    const userExists = await User.findOne({ email });
     console.log({ email });
+    if (userExists) {
+      return res.status(200).send({
+        isSuccess: true,
+        user: userExists,
+      });
+    }
+    // console.log({ email });
 
     // create Stripe customer ID
     const customer = await stripe.customers.create({
@@ -61,7 +69,6 @@ exports.getUserByEmailAndUID = async (req, res) => {
 
     const user = await User.findOne({
       email,
-      uid,
     });
 
     if (user) {
