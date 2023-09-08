@@ -176,13 +176,13 @@ exports.webhook = async (request, response, next) => {
         let selectedPlan = "",
           credit = 0;
 
-        if (subscription.plan.product === "prod_OSylA7NCiGoeJV") {
+        if (subscription.plan.product === "prod_Ob7YXNhbw1zVUz") {
           selectedPlan = "basic";
           credit = 29000;
-        } else if (subscription.plan.product === "prod_OSylNMKhcE9zZQ") {
+        } else if (subscription.plan.product === "prod_Ob7dW5mx8llKLf") {
           selectedPlan = "standard";
           credit = 59000;
-        } else if (subscription.plan.product === "prod_OSylv4rozveFqr") {
+        } else if (subscription.plan.product === "prod_Ob7eqM9mMfr0qU") {
           selectedPlan = "premium";
           credit = 99000;
         } else if (subscription.plan.product === "prod_OCrzCUPt4SGKZk") {
