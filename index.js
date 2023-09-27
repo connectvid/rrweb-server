@@ -10,7 +10,7 @@ const defaultErrorHandle = require("./middleware/defaultErrorHandle");
 const app = express();
 
 // DECLARING PORT
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // MIDDLEWARES
 const middlwares = [
